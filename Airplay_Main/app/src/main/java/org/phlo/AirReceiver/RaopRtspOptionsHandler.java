@@ -29,28 +29,27 @@ import org.jboss.netty.handler.codec.rtsp.*;
  * Apple-Response
  */
 public class RaopRtspOptionsHandler extends SimpleChannelUpstreamHandler {
-	private static final String Options =
-		RaopRtspMethods.ANNOUNCE.getName() + ", " +
-		RaopRtspMethods.SETUP.getName() + ", " +
-		RaopRtspMethods.RECORD.getName() + ", " +
-		RaopRtspMethods.PAUSE.getName() + ", " +
-		RaopRtspMethods.FLUSH.getName() + ", " +
-		RtspMethods.TEARDOWN.getName() + ", " +
-		RaopRtspMethods.OPTIONS.getName() + ", " +
-		RaopRtspMethods.GET_PARAMETER.getName() + ", " +
-		RaopRtspMethods.SET_PARAMETER.getName();
+    private static final String Options =
+            RaopRtspMethods.ANNOUNCE.getName() + ", " +
+                    RaopRtspMethods.SETUP.getName() + ", " +
+                    RaopRtspMethods.RECORD.getName() + ", " +
+                    RaopRtspMethods.PAUSE.getName() + ", " +
+                    RaopRtspMethods.FLUSH.getName() + ", " +
+                    RtspMethods.TEARDOWN.getName() + ", " +
+                    RaopRtspMethods.OPTIONS.getName() + ", " +
+                    RaopRtspMethods.GET_PARAMETER.getName() + ", " +
+                    RaopRtspMethods.SET_PARAMETER.getName();
 
-	@Override
-	public void messageReceived(final ChannelHandlerContext ctx, final MessageEvent evt) throws Exception {
-		final HttpRequest req = (HttpRequest)evt.getMessage();
+    @Override
+    public void messageReceived(final ChannelHandlerContext ctx, final MessageEvent evt) throws Exception {
+        final HttpRequest req = (HttpRequest) evt.getMessage();
 
-		if (RtspMethods.OPTIONS.equals(req.getMethod())) {
-	        final HttpResponse response = new DefaultHttpResponse(RtspVersions.RTSP_1_0, RtspResponseStatuses.OK);
-	        response.setHeader(RtspHeaders.Names.PUBLIC, Options);
-			ctx.getChannel().write(response);
-		}
-		else {
-			super.messageReceived(ctx, evt);
-		}
-	}
+        if (RtspMethods.OPTIONS.equals(req.getMethod())) {
+            final HttpResponse response = new DefaultHttpResponse(RtspVersions.RTSP_1_0, RtspResponseStatuses.OK);
+            response.setHeader(RtspHeaders.Names.PUBLIC, Options);
+            ctx.getChannel().write(response);
+        } else {
+            super.messageReceived(ctx, evt);
+        }
+    }
 }
