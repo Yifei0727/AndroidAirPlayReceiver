@@ -65,7 +65,7 @@ public class RaopRtpAudioDecryptionHandler extends OneToOneDecoder {
         try {
         	aesCipher = Cipher.getInstance(transformation);
         	
-        	LOG.info("Cipher acquired sucessfully. transformation: " + transformation);
+        	LOG.info("Cipher acquired successfully. transformation: " + transformation);
 		} 
         catch (NoSuchAlgorithmException e) {
 			LOG.log(Level.SEVERE, "Error getting the Cipher. transformation: " + transformation, e);

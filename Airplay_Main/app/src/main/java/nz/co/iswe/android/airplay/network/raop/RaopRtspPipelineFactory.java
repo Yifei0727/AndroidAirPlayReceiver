@@ -17,7 +17,7 @@
 
 package nz.co.iswe.android.airplay.network.raop;
 
-import nz.co.iswe.android.airplay.AirPlayServer;
+import nz.co.iswe.android.airplay.AirPlayDaemonPlayer;
 import nz.co.iswe.android.airplay.audio.RaopAudioHandler;
 import nz.co.iswe.android.airplay.network.ExceptionLoggingHandler;
 import nz.co.iswe.android.airplay.network.NetworkUtils;
@@ -46,13 +46,13 @@ public class RaopRtspPipelineFactory implements ChannelPipelineFactory {
 	public ChannelPipeline getPipeline() throws Exception {
 		final ChannelPipeline pipeline = Channels.pipeline();
 
-		final AirPlayServer airPlayServer = AirPlayServer.getIstance();
+		final AirPlayDaemonPlayer airPlayDaemonPlayer = AirPlayDaemonPlayer.getInstance();
 		
-		pipeline.addLast("executionHandler", airPlayServer.getChannelExecutionHandler());
+		pipeline.addLast("executionHandler", airPlayDaemonPlayer.getChannelExecutionHandler());
 		pipeline.addLast("closeOnShutdownHandler", new SimpleChannelUpstreamHandler() {
 			@Override
 			public void channelOpen(final ChannelHandlerContext ctx, final ChannelStateEvent e) throws Exception {
-				airPlayServer.getChannelGroup().add(e.getChannel());
+				airPlayDaemonPlayer.getChannelGroup().add(e.getChannel());
 				super.channelOpen(ctx, e);
 			}
 		});
@@ -64,7 +64,7 @@ public class RaopRtspPipelineFactory implements ChannelPipelineFactory {
 		pipeline.addLast("challengeResponse", new RaopRtspChallengeResponseHandler(NetworkUtils.getInstance().getHardwareAddress()));
 		pipeline.addLast("header", new RaopRtspHeaderHandler());
 		pipeline.addLast("options", new RaopRtspOptionsHandler());
-		pipeline.addLast("audio", new RaopAudioHandler(airPlayServer.getExecutorService()));
+		pipeline.addLast("audio", new RaopAudioHandler(airPlayDaemonPlayer.getExecutorService()));
 		pipeline.addLast("unsupportedResponse", new RtspUnsupportedResponseHandler());
 
 		return pipeline;
