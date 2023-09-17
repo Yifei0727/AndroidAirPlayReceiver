@@ -20,6 +20,8 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
+    - name: Switch work root
+      run: cd Airplay_Main/
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
     - name: Build with Gradle
