@@ -1,4 +1,0 @@
-#Wed Jul 04 15:16:32 CST 2018
-base.0=E\:\\code\\learn\\Airplay_Main\\app\\build\\intermediates\\transforms\\dexMerger\\debug\\0
-renamed.0=classes.dex
-file.0=E\:\\code\\learn\\Airplay_Main\\app\\build\\intermediates\\transforms\\dexMerger\\debug\\0\\classes.dex
