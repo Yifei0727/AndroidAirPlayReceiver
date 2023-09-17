@@ -1,28 +1,37 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 20
-    buildToolsVersion "27.0.3"
+    compileSdkVersion 27
+    buildToolsVersion '28.0.3'
 
     defaultConfig {
         applicationId "com.wh"
         minSdkVersion 14
-        targetSdkVersion 21
+        targetSdkVersion 27
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_6
+        targetCompatibility JavaVersion.VERSION_1_6
+    }
+
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:20.0.0'
-    compile files('libs/base64-2.3.8.jar')
-    compile files('libs/bcprov-ext-jdk16-1.46.jar')
-    compile files('libs/jmdns-3.4.1.jar')
-    compile files('libs/netty-3.2.4.Final.jar')
-    provided files('libs/rt.jar')
+    implementation 'com.android.support:support-v4:27.1.1'
+    implementation files('libs/base64-2.3.8.jar')
+    implementation files('libs/bcprov-ext-jdk16-1.46.jar')
+    implementation files('libs/jmdns-3.4.1.jar')
+    implementation files('libs/netty-3.2.4.Final.jar')
+    compileOnly files('libs/rt.jar')
 }
