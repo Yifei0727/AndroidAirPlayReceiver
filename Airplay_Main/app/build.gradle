@@ -20,6 +20,10 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
+    /* *************** 补充说明 *************** */
+    /* 项目主要是给老旧设备使用，老旧设备集中在 安卓4.4 - 安卓8.0 所以编译目标JDK应当使用较低版本 1.6 */
+    /* 目前构建工程时，请配置 Gradle JDK 版本并使用 JDK1.8 */
+    /* *************** 补充说明 *************** */
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_6
         targetCompatibility JavaVersion.VERSION_1_6
