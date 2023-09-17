@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Airplay_Main</string>
+    <string name="app_name">AirplayBoard</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="title_activity_airplay">Airplay 偏好设置</string>
+    <string name="switch1">开机自动启动</string>
+    <string name="switch2">启动服务</string>
+    <string name="service_state_detected">服务状态检查 …</string>
+    <string name="service_state">服务状态</string>
+    <string name="service_state_running">工作中</string>
+    <string name="service_state_not_run">未启动</string>
+    <string name="service_state_start">启动</string>
+    <string name="service_state_stop">停止</string>
+    <string name="service_daemon_starting">正在启动服务 …</string>
 
 </resources>

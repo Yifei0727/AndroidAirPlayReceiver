@@ -1,27 +1,5 @@
 package nz.co.iswe.android.airplay;
 
-import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.jmdns.JmDNS;
-import javax.jmdns.ServiceInfo;
-
-import nz.co.iswe.android.airplay.network.NetworkUtils;
-import nz.co.iswe.android.airplay.network.raop.RaopRtspPipelineFactory;
-
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.group.ChannelGroup;
@@ -30,6 +8,31 @@ import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.execution.ExecutionHandler;
 import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor;
+
+import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.jmdns.JmDNS;
+import javax.jmdns.ServiceInfo;
+
+import nz.co.iswe.android.airplay.network.NetworkUtils;
+import nz.co.iswe.android.airplay.network.raop.RaopRtspPipelineFactory;
 
 /**
  * Android AirPlay Server Implementation
@@ -64,6 +67,8 @@ public class AirPlayDaemonPlayer implements Runnable {
     );
 
     private static AirPlayDaemonPlayer instance = null;
+    private final AtomicBoolean isRunning = new AtomicBoolean(false);
+    private final AtomicBoolean isStopping = new AtomicBoolean(false);
 
     public static synchronized AirPlayDaemonPlayer getInstance() {
         if (instance == null) {
@@ -93,6 +98,13 @@ public class AirPlayDaemonPlayer implements Runnable {
      */
     protected final List<JmDNS> jmDNSInstances;
 
+
+    /* Create AirTunes RTSP server */
+    private ServerBootstrap airTunesRtspBootstrap;
+
+    /* mDns publisher */
+    private ExecutorService mDnsPublisher;
+
     /**
      * The AirTunes/RAOP RTSP port
      */
@@ -110,8 +122,19 @@ public class AirPlayDaemonPlayer implements Runnable {
     }
 
     private AirPlayDaemonPlayer() {
+        //list of mDNS services
+        jmDNSInstances = new java.util.LinkedList<JmDNS>();
+    }
+
+    /**
+     * @see #onShutdown()
+     */
+    private void initResource() {
         //create executor service
         executorService = Executors.newCachedThreadPool();
+
+        //create mDns publisher service
+        mDnsPublisher = Executors.newSingleThreadExecutor();
 
         //create channel execution handler
         channelExecutionHandler = new ExecutionHandler(new OrderedMemoryAwareThreadPoolExecutor(4, 0, 0));
@@ -119,8 +142,8 @@ public class AirPlayDaemonPlayer implements Runnable {
         //channel group
         channelGroup = new DefaultChannelGroup();
 
-        //list of mDNS services
-        jmDNSInstances = new java.util.LinkedList<JmDNS>();
+        // create rtsp server
+        airTunesRtspBootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(executorService, executorService));
     }
 
     public int getRtspPort() {
@@ -132,8 +155,18 @@ public class AirPlayDaemonPlayer implements Runnable {
     }
 
     public void run() {
-        startService();
+        isStopping.set(false);
+        synchronized (AirPlayDaemonPlayer.class) {
+            if (isRunning.get()) {
+                LOG.info("AirPlayDaemonPlayer is already running. won't start again");
+                return;
+            }
+            isRunning.set(true);
+            initResource();
+            startService();
+        }
     }
+
 
     private void startService() {
         /* Make sure AirPlay Server shuts down gracefully */
@@ -145,14 +178,10 @@ public class AirPlayDaemonPlayer implements Runnable {
         }));
 
         LOG.info("VM Shutdown Hook added successfully!");
-
-        /* Create AirTunes RTSP server */
-        final ServerBootstrap airTunesRtspBootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(executorService, executorService));
         airTunesRtspBootstrap.setPipelineFactory(new RaopRtspPipelineFactory());
         airTunesRtspBootstrap.setOption("reuseAddress", true);
         airTunesRtspBootstrap.setOption("child.tcpNoDelay", true);
         airTunesRtspBootstrap.setOption("child.keepAlive", true);
-
         try {
             channelGroup.add(airTunesRtspBootstrap.bind(new InetSocketAddress(Inet4Address.getByName("0.0.0.0"), getRtspPort())));
         } catch (UnknownHostException e) {
@@ -161,59 +190,106 @@ public class AirPlayDaemonPlayer implements Runnable {
 
         LOG.info("Launched RTSP service on port " + getRtspPort());
 
-        //get Network details
-        NetworkUtils networkUtils = NetworkUtils.getInstance();
+        mDnsPublishJob();
+    }
 
-        String hostName = null != instance.hostName ? instance.hostName : networkUtils.getHostUtils();
-
-        try {
-            /* Create mDNS responders. */
-            synchronized (jmDNSInstances) {
-                for (final NetworkInterface iface : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                    if (iface.isLoopback()) {
-                        continue;
-                    }
-                    if (iface.isPointToPoint()) {
-                        continue;
-                    }
-                    if (!iface.isUp()) {
-                        continue;
-                    }
-
-                    for (final InetAddress addr : Collections.list(iface.getInetAddresses())) {
-                        if (!(addr instanceof Inet4Address) && !(addr instanceof Inet6Address)) {
-                            continue;
+    // 如果网络发生变化，监听不变但是 mDNS 需要在有效网卡上重新广播
+    private void mDnsPublishJob() {
+        mDnsPublisher.execute(new Runnable() {
+            @Override
+            public void run() {
+                while (isRunning.get() && !isStopping.get()) {
+                    registerOrUpdateMdns();
+                    try {
+                        for (int i = 0; i < 3333 && isRunning.get() && !isStopping.get(); i++) {
+                            Thread.sleep(1);
                         }
-
-                        try {
-                            /* Create mDNS responder for address */
-                            final JmDNS jmDNS = JmDNS.create(addr, hostName + "-jmdns");
-                            jmDNSInstances.add(jmDNS);
-                            String hardwareAddressString = networkUtils.getHardwareAddressString(addr);
-                            if (null == hardwareAddressString) {
-                                continue;
-                            }
-
-                            /* Publish RAOP service */
-                            final ServiceInfo airTunesServiceInfo = ServiceInfo.create(
-                                    AIR_TUNES_SERVICE_TYPE,
-                                    hardwareAddressString + "@" + hostName + " (" + iface.getName() + ")",
-                                    getRtspPort(),
-                                    0 /* weight */, 0 /* priority */,
-                                    AIRTUNES_SERVICE_PROPERTIES
-                            );
-                            jmDNS.registerService(airTunesServiceInfo);
-                            LOG.info("Registered AirTunes service '" + airTunesServiceInfo.getName() + "' on " + addr);
-                        } catch (final Throwable e) {
-                            LOG.log(Level.SEVERE, "Failed to publish service on " + addr, e);
-                        }
+                    } catch (InterruptedException e) {
+                        break;
                     }
                 }
+                unregisterOrUpdateMdns();
             }
+        });
+    }
 
-        } catch (SocketException e) {
-            LOG.log(Level.SEVERE, "Failed register mDNS services", e);
+
+    private void unregisterOrUpdateMdns() {
+        synchronized (jmDNSInstances) {
+            for (final JmDNS jmDNS : jmDNSInstances) {
+                try {
+                    LOG.info("Unregistered all services : " + jmDNS.getHostName());
+                    jmDNS.unregisterAllServices();
+                    jmDNS.close();
+                } catch (final IOException e) {
+                    LOG.log(Level.WARNING, "Failed to unregister some services", e);
+                }
+            }
+            jmDNSInstances.clear();
+            lastInterface.clear();
         }
+        // 最后一个被关闭的服务 直接 重置状态
+        isStopping.set(false);
+    }
+
+    private final Map<String, Set<String>> lastInterface = new ConcurrentHashMap<String, Set<String>>();
+
+    private void registerOrUpdateMdns() {
+        //get Network details
+        final NetworkUtils networkUtils = NetworkUtils.getInstance();
+        final String hostName = null != instance.hostName ? instance.hostName : networkUtils.getHostUtils();
+
+        /* Create mDNS responders. */
+        synchronized (jmDNSInstances) {
+            final Set<NetworkInterface> currentEnabledInterface = networkUtils.getNetworkInterfaces();
+
+            for (final NetworkInterface iface : currentEnabledInterface) {
+                final Set<String> ipAddresses = lastInterface.get(iface.getName()) != null ? lastInterface.get(iface.getName()) : new HashSet<String>();
+                // 仅处理新增的 IP 地址
+                final String hardwareAddressString = networkUtils.getHardwareAddressString(iface);
+                if (null == hardwareAddressString) {
+                    LOG.info("Ignoring network interface " + iface.getName() + " because it has no hardware address");
+                    continue; // should not happen
+                }
+                for (final InetAddress addr : networkUtils.getNetworkAddresses(iface)) {
+                    if (!(addr instanceof Inet4Address) && !(addr instanceof Inet6Address)) {
+                        LOG.info("Ignoring non-IP address " + iface.getName() + " " + addr);
+                        continue;
+                    }
+                    if (ipAddresses.contains(addr.getHostAddress())) {
+                        LOG.info("Ignoring duplicate address " + iface.getName() + " " + addr);
+                        continue;
+                    }
+
+                    try {
+                        final String name = hostName + "-jmdns";
+                        // 一块网卡 刚起来或者 刚下线 此网卡的地址
+                        LOG.info("prepare add new mDNS responder for address " + String.format("%s  name is %s", addr.getHostAddress(), name));
+                        /* Create mDNS responder for address */
+                        final JmDNS jmDNS = JmDNS.create(addr, name);
+                        jmDNSInstances.add(jmDNS);
+
+                        /* Publish RAOP service */
+                        final ServiceInfo airTunesServiceInfo = ServiceInfo.create(
+                                AIR_TUNES_SERVICE_TYPE,
+                                hardwareAddressString + "@" + hostName + "(" + iface.getName() + ")",
+                                getRtspPort(),
+                                0 /* weight */, 0 /* priority */,
+                                AIRTUNES_SERVICE_PROPERTIES
+                        );
+                        jmDNS.registerService(airTunesServiceInfo);
+                        ipAddresses.add(addr.getHostAddress());
+                        LOG.info("Registered AirTunes service '" + airTunesServiceInfo.getName() + "' on " + addr);
+                    } catch (final Throwable e) {
+                        LOG.log(Level.SEVERE, "Failed to publish service on " + addr, e);
+                    } finally {
+                        LOG.info("Registered AirTunes service Total " + jmDNSInstances.size() + " Details " + jmDNSInstances);
+                    }
+                }
+                lastInterface.put(iface.getName(), ipAddresses);
+            }
+        }
+
     }
 
     //When the app is shutdown
@@ -242,7 +318,11 @@ public class AirPlayDaemonPlayer implements Runnable {
 
         /* Release the OrderedMemoryAwareThreadPoolExecutor */
         channelExecutionHandler.releaseExternalResources();
+        /* Release the ServerBootstrap */
+        airTunesRtspBootstrap.releaseExternalResources();
 
+        /* Reset state to stop */
+        isRunning.set(false);
     }
 
     /**
@@ -279,5 +359,25 @@ public class AirPlayDaemonPlayer implements Runnable {
 
     public AudioControlService getVolumeControlService() {
         return audioControlService;
+    }
+
+    public boolean isRunning() {
+        return isRunning.get();
+    }
+
+    public boolean isStopping() {
+        return isStopping.get();
+    }
+
+    public void stop() {
+        isStopping.set(true);
+        synchronized (AirPlayDaemonPlayer.class) {
+            if (!isRunning.get()) {
+                LOG.info("AirPlayDaemonPlayer is already stopped");
+                return;
+            }
+            LOG.info("AirPlayDaemonPlayer is stopping");
+            onShutdown();
+        }
     }
 }
