@@ -89,7 +89,12 @@ public class AirplayActivity extends Activity {
                                     public void onClick(View v) {
                                         LOG.info("clicked, stop service ...");
                                         button.setEnabled(false);
-                                        airPlayAndroidService.pause();
+                                        new Thread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                airPlayAndroidService.pause();
+                                            }
+                                        }).start();
                                     }
                                 });
                                 break;

@@ -155,8 +155,8 @@ public class AirPlayDaemonPlayer implements Runnable {
     }
 
     public void run() {
-        isStopping.set(false);
         synchronized (AirPlayDaemonPlayer.class) {
+            isStopping.set(false);
             if (isRunning.get()) {
                 LOG.info("AirPlayDaemonPlayer is already running. won't start again");
                 return;
@@ -208,13 +208,13 @@ public class AirPlayDaemonPlayer implements Runnable {
                         break;
                     }
                 }
-                unregisterOrUpdateMdns();
+                unregisterMdns();
             }
         });
     }
 
 
-    private void unregisterOrUpdateMdns() {
+    private void unregisterMdns() {
         synchronized (jmDNSInstances) {
             for (final JmDNS jmDNS : jmDNSInstances) {
                 try {
@@ -370,12 +370,12 @@ public class AirPlayDaemonPlayer implements Runnable {
     }
 
     public void stop() {
-        isStopping.set(true);
         synchronized (AirPlayDaemonPlayer.class) {
             if (!isRunning.get()) {
                 LOG.info("AirPlayDaemonPlayer is already stopped");
                 return;
             }
+            isStopping.set(true);
             LOG.info("AirPlayDaemonPlayer is stopping");
             onShutdown();
         }
