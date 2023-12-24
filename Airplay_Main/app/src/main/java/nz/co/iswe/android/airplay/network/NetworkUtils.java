@@ -20,6 +20,16 @@ public class NetworkUtils {
     private static final Logger LOG = Logger.getLogger(NetworkUtils.class.getName());
 
     private static NetworkUtils instance;
+    private static final List<String> specialInterface = Arrays.asList("ap", "eth", "rndis");
+
+    public static boolean isSpecialInterface(NetworkInterface ifc) {
+        for (String name : specialInterface) {
+            if (ifc.getDisplayName().toLowerCase().startsWith(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static NetworkUtils getInstance() {
         if (instance == null) {
@@ -186,7 +196,7 @@ public class NetworkUtils {
                 LOG.info("Hardware address is " + toHexString(ifaceMacAddress) + " (" + iface.getDisplayName() + ")");
                 return toHexString(Arrays.copyOfRange(ifaceMacAddress, 0, 6));
             }
-            if (iface.getDisplayName().trim().toLowerCase().startsWith("ap")) {
+            if (isSpecialInterface(iface)) {
                 // 适配某些
                 Process process = Runtime.getRuntime().exec(new String[]{"sh", "-c", "/system/bin/ip addr show " + iface.getDisplayName()});
 
@@ -243,7 +253,7 @@ public class NetworkUtils {
                             continue;
                         }
 
-                        if ((!networkInterface.getDisplayName().toLowerCase().startsWith("ap")) && null == getHardwareAddressString(networkInterface)) {
+                        if ((!isSpecialInterface(networkInterface)) && null == getHardwareAddressString(networkInterface)) {
                             continue;
                         }
                     }
