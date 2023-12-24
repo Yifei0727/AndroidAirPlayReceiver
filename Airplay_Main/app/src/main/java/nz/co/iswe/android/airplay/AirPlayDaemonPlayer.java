@@ -232,6 +232,38 @@ public class AirPlayDaemonPlayer implements Runnable {
         isStopping.set(false);
     }
 
+    private boolean isIPv4Enabled = true;
+    private boolean isIPv6Enabled = false;
+
+    public void setIPv4Enabled(boolean st) {
+        this.isIPv4Enabled = st;
+        restart();
+    }
+
+    public void setIPv6Enabled(boolean st) {
+        this.isIPv6Enabled = st;
+        restart();
+    }
+
+    private void restart() {
+        Executors.newSingleThreadExecutor().execute(new Runnable() {
+            @Override
+            public void run() {
+                stop();
+                while (isRunning()) {
+                    //wait
+                    LOG.info(".");
+                    try {
+                        Thread.sleep(15);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                startService();
+            }
+        });
+    }
+
     private final Map<String, Set<String>> lastInterface = new ConcurrentHashMap<String, Set<String>>();
 
     private void registerOrUpdateMdns() {
@@ -252,8 +284,15 @@ public class AirPlayDaemonPlayer implements Runnable {
                     continue; // should not happen
                 }
                 for (final InetAddress addr : networkUtils.getNetworkAddresses(iface)) {
-                    if (!(addr instanceof Inet4Address) && !(addr instanceof Inet6Address)) {
-                        LOG.info("Ignoring non-IP address " + iface.getName() + " " + addr);
+                    if (addr instanceof Inet4Address && isIPv4Enabled) {
+                        //ok
+                        LOG.info("Using IPv4");
+                    } else if ((addr instanceof Inet6Address && isIPv6Enabled)) {
+                        //ok
+                        LOG.info("Using IPv6");
+                    } else {
+                        //skip
+                        LOG.info("Ignoring  address " + iface.getName() + " " + addr);
                         continue;
                     }
                     if (ipAddresses.contains(addr.getHostAddress())) {
