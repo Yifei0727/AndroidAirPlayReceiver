@@ -207,7 +207,7 @@ public class NetworkUtils {
                     while (inputStream.available() > 0) {
                         byteArrayOutputStream.write(inputStream.read());
                     }
-                    LOG.log(Level.WARNING, "getHardwareAddressString::" + byteArrayOutputStream);
+                    LOG.log(Level.WARNING, "getHardwareAddressString::" + byteArrayOutputStream.toString("UTF-8"));
                 }
 
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
