@@ -14,5 +14,8 @@
     <string name="service_state_start">启动</string>
     <string name="service_state_stop">停止</string>
     <string name="service_daemon_starting">正在启动服务 …</string>
+    <string name="app_name_custom">设置自定义名称</string>
+    <string name="use_usb_rather_than_wifi">优先使用USB网络</string>
+    <string name="status_detecting">检测中</string>
 
 </resources>

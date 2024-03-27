@@ -84,6 +84,7 @@ public class AirPlayAndroidService extends Service {
 
         airPlayDaemonPlayer.setHostName(AirPlayPrefSetting.getAirplayName(this));//使用设备名称 如果有多个同样设备 请注释掉这行
         airPlayDaemonPlayer.setRtspPort(5000);
+        airPlayDaemonPlayer.setUsbNetworkRatherThanWifi(AirPlayPrefSetting.isUsbLanFirst(this));
         Thread thread = new Thread(airPlayDaemonPlayer);
         thread.start();
         // 后端服务启动中 或者 启动完成

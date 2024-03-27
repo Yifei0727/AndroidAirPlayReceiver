@@ -5,7 +5,7 @@ android {
     buildToolsVersion '28.0.3'
 
     defaultConfig {
-        applicationId "com.wh"
+        applicationId "com.github.yifei0727.androidReceiver"
         minSdkVersion 14
         targetSdkVersion 27
     }

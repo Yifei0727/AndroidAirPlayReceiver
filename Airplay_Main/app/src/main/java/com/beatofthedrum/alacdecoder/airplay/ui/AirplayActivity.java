@@ -2,8 +2,10 @@ package com.beatofthedrum.alacdecoder.airplay.ui;
 
 import android.app.Activity;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Rect;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,20 +14,26 @@ import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.github.yifei0727.adnroid.airplay.AirPlayPrefSetting;
 import com.github.yifei0727.adnroid.airplay.service.AirPlayAndroidService;
-import com.wh.R;
+import com.github.yifei0727.androidReceiver.R;
 
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Set;
 import java.util.logging.Logger;
+
+import nz.co.iswe.android.airplay.network.NetworkUtils;
 
 /**
  * Created by Administrator on 2018/6/29.
@@ -73,7 +81,7 @@ public class AirplayActivity extends Activity {
         @Override
         public void run() {
             if (run) {
-                final Switch stateSwitch = findViewById(R.id.switch5);
+                final Switch stateSwitch = findViewById(R.id.switch0);
                 stateSwitch.setEnabled(false);
                 final Button button = findViewById(R.id.button);
                 final AirPlayAndroidService airPlayAndroidService = AirPlayAndroidService.getInstance();
@@ -145,8 +153,9 @@ public class AirplayActivity extends Activity {
 
     private void uiMainView() {
         setContentView(R.layout.activity_main);
+        uiSettingsView();
         run = true;
-        final Switch stateSwitch = findViewById(R.id.switch5);
+        final Switch stateSwitch = findViewById(R.id.switch0);
         stateSwitch.setEnabled(false);
         final Button button = findViewById(R.id.button);
 
@@ -166,10 +175,10 @@ public class AirplayActivity extends Activity {
     }
 
     private void uiSettingsView() {
-        setContentView(R.layout.settings);
-        run = false;
+//        setContentView(R.layout.activity_main);
+//        run = false;
         // 根据用户配置 显示用户偏好
-        final Switch autoStartSwitch = findViewById(R.id.switch3);
+        final Switch autoStartSwitch = findViewById(R.id.switch1);
         autoStartSwitch.setChecked(AirPlayPrefSetting.isAutoStart(this));
         autoStartSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -178,8 +187,17 @@ public class AirplayActivity extends Activity {
                 AirPlayPrefSetting.setAutoStart(AirplayActivity.this, isChecked);
             }
         });
+        final Switch usbNetworkFirst = findViewById(R.id.switch2);
+        usbNetworkFirst.setChecked(AirPlayPrefSetting.isUsbLanFirst(this));
+        usbNetworkFirst.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                LOG.info("onCheckedChanged isChecked = " + isChecked);
+                AirPlayPrefSetting.setUsbLanFirst(AirplayActivity.this, isChecked);
+            }
+        });
 
-        final TextView viewById = findViewById(R.id.editTextText);
+        final TextView viewById = findViewById(R.id.editText);
         viewById.setText(AirPlayPrefSetting.getAirplayName(this));
         viewById.addTextChangedListener(new TextWatcher() {
             @Override
@@ -199,23 +217,57 @@ public class AirplayActivity extends Activity {
                 }
             }
         });
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        LOG.info("onOptionsItemSelected id = " + id);
-        if (id == R.id.action_settings) {
-            uiSettingsView();
-        } else {
-            uiMainView();
+        final TextView textView = findViewById(R.id.textView);
+        Set<NetworkInterface> networkInterfaces = NetworkUtils.getInstance().getNetworkInterfaces();
+        StringBuilder sb = new StringBuilder();
+        for (NetworkInterface networkInterface : networkInterfaces) {
+            sb.append(networkInterface.getName()).append(" - ");
+            boolean append = false;
+            for (InetAddress address : NetworkUtils.getInstance().getNetworkAddresses(networkInterface, true, false)) {
+                sb.append(address.getHostAddress()).append(", ");
+                append = true;
+            }
+            if (append) {
+                sb.delete(sb.length() - 2, sb.length());
+            }
+            sb.append("\n");
         }
-        return true;
+        textView.setText(sb.toString());
+    }
+
+//    @Override
+//    public boolean onCreateOptionsMenu(Menu menu) {
+//        getMenuInflater().inflate(R.menu.main, menu);
+//        return true;
+//    }
+
+    //    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        int id = item.getItemId();
+//        LOG.info("onOptionsItemSelected id = " + id);
+//        if (id == R.id.action_settings) {
+//            uiSettingsView();
+//        } else {
+//            uiMainView();
+//        }
+//        return true;
+//    }
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            View v = getCurrentFocus();
+            if (v instanceof EditText) {
+                Rect outRect = new Rect();
+                v.getGlobalVisibleRect(outRect);
+                if (!outRect.contains((int) event.getRawX(), (int) event.getRawY())) {
+                    v.clearFocus();
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (null != imm) {
+                        imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                    }
+                }
+            }
+        }
+        return super.dispatchTouchEvent(event);
     }
 }

@@ -1,5 +1,7 @@
 package nz.co.iswe.android.airplay;
 
+import com.github.yifei0727.adnroid.airplay.NetworkCardManager;
+
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.group.ChannelGroup;
@@ -195,6 +197,9 @@ public class AirPlayDaemonPlayer implements Runnable {
 
     // 如果网络发生变化，监听不变但是 mDNS 需要在有效网卡上重新广播
     private void mDnsPublishJob() {
+        if (usbNetworkRatherThanWifi) {
+            NetworkCardManager.startLanNetwork();
+        }
         mDnsPublisher.execute(new Runnable() {
             @Override
             public void run() {
@@ -266,6 +271,13 @@ public class AirPlayDaemonPlayer implements Runnable {
 
     private final Map<String, Set<String>> lastInterface = new ConcurrentHashMap<String, Set<String>>();
 
+    private boolean usbNetworkRatherThanWifi = false;
+
+
+    public void setUsbNetworkRatherThanWifi(boolean usbNetworkRatherThanWifi) {
+        this.usbNetworkRatherThanWifi = usbNetworkRatherThanWifi;
+    }
+
     private void registerOrUpdateMdns() {
         //get Network details
         final NetworkUtils networkUtils = NetworkUtils.getInstance();
@@ -277,22 +289,29 @@ public class AirPlayDaemonPlayer implements Runnable {
 
             for (final NetworkInterface iface : currentEnabledInterface) {
                 final Set<String> ipAddresses = lastInterface.get(iface.getName()) != null ? lastInterface.get(iface.getName()) : new HashSet<String>();
+                if (usbNetworkRatherThanWifi && networkUtils.isUsbNetworkOk(isIPv4Enabled, isIPv6Enabled)) {
+                    if (iface.getName().toLowerCase().startsWith("wifi") || iface.getName().toLowerCase().startsWith("wlan")) {
+                        //如果已经注册了LAN 则 没必要使用WLAN
+                        LOG.log(Level.INFO, "Skip WIFI Interface " + iface.getName() + " [" + iface.getDisplayName() + "]");
+                        continue;//skip wifi
+                    }
+                }
                 // 仅处理新增的 IP 地址
                 final String hardwareAddressString = networkUtils.getHardwareAddressString(iface);
                 if (null == hardwareAddressString) {
                     LOG.info("Ignoring network interface " + iface.getName() + " because it has no hardware address");
                     continue; // should not happen
                 }
-                for (final InetAddress addr : networkUtils.getNetworkAddresses(iface)) {
+                for (final InetAddress addr : networkUtils.getNetworkAddresses(iface, isIPv4Enabled, isIPv6Enabled)) {
                     if (addr instanceof Inet4Address && isIPv4Enabled) {
                         //ok
-                        LOG.info("Using IPv4");
+                        LOG.info(iface.getName() + " Using IPv4");
                     } else if ((addr instanceof Inet6Address && isIPv6Enabled)) {
                         //ok
-                        LOG.info("Using IPv6");
+                        LOG.info(iface.getName() + " Using IPv6");
                     } else {
                         //skip
-                        LOG.info("Ignoring  address " + iface.getName() + " " + addr);
+                        LOG.info("Ignoring address " + iface.getName() + " " + addr);
                         continue;
                     }
                     if (ipAddresses.contains(addr.getHostAddress())) {
@@ -326,6 +345,22 @@ public class AirPlayDaemonPlayer implements Runnable {
                     }
                 }
                 lastInterface.put(iface.getName(), ipAddresses);
+            }
+            // 新注册的完成，检查如果LAN注册成功则注销WLAN
+            for (final NetworkInterface iface : currentEnabledInterface) {
+                final String hardwareAddressString = networkUtils.getHardwareAddressString(iface);
+                if (usbNetworkRatherThanWifi && networkUtils.isUsbNetworkOk(isIPv4Enabled, isIPv6Enabled)) {
+                    if (iface.getName().toLowerCase().startsWith("wifi") || iface.getName().toLowerCase().startsWith("wlan")) {
+                        //stop wifi
+                        for (JmDNS md : jmDNSInstances) {
+                            final ServiceInfo serviceInfo = md.getServiceInfo(AIR_TUNES_SERVICE_TYPE, hardwareAddressString + "@" + hostName + "(" + iface.getName() + ")");
+                            if (null != serviceInfo) {
+                                LOG.log(Level.INFO, "unregisterService Over WIFI Interface " + iface.getName() + " [" + iface.getDisplayName() + "]");
+                                md.unregisterService(serviceInfo);
+                            }
+                        }
+                    }
+                }
             }
         }
 

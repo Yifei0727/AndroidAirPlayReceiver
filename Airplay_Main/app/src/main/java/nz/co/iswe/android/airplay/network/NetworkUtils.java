@@ -1,7 +1,12 @@
 package nz.co.iswe.android.airplay.network;
 
+import com.github.yifei0727.adnroid.airplay.SuperUser;
+
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -12,6 +17,7 @@ import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -140,10 +146,21 @@ public class NetworkUtils {
     }
 
 
-    public List<InetAddress> getNetworkAddresses(NetworkInterface iface) {
+    /**
+     * use shell cmd ip addr get ipaddress of interface
+     *
+     * @param iface   nic
+     * @param useIPv4 filter ipv4 address if true,else discard
+     * @param useIPv6 filter ipv6 address if true,else discard
+     * @return nic address
+     */
+    public List<InetAddress> getNetworkAddresses(NetworkInterface iface, boolean useIPv4, boolean useIPv6) {
         Enumeration<InetAddress> inetAddresses = iface.getInetAddresses();
-        if (!inetAddresses.hasMoreElements()) {
-            final List<InetAddress> out = new ArrayList<InetAddress>();
+        final List<InetAddress> out = new ArrayList<InetAddress>();
+
+        while (inetAddresses.hasMoreElements()) {
+            InetAddress inetAddress = inetAddresses.nextElement();
+            /*
             try {
                 Process process = Runtime.getRuntime().exec(new String[]{"sh", "-c", "/system/bin/ip addr show " + iface.getDisplayName()});
                 int stauts = process.waitFor();
@@ -173,9 +190,10 @@ public class NetworkUtils {
 
                     if (split.length > 1) {
                         String ip = split[1].trim().split(" ")[0].trim().split("/")[0].trim().split("%")[0].trim();
-                        LOG.info("Hardware address is " + ip + " (" + iface.getDisplayName() + ")");
+                        LOG.info("IP address is " + ip + " (" + iface.getDisplayName() + ")");
                         try {
-                            out.add(InetAddress.getByName(ip));
+                            inetAddress = InetAddress.getByName(ip);
+
                         } catch (Throwable ignore) {
                         }
                     }
@@ -183,11 +201,60 @@ public class NetworkUtils {
             } catch (Exception e) {
                 //ignore
             }
-            return out;
+
+            */
+            if (useIPv4 && inetAddress instanceof Inet4Address) {
+                out.add(inetAddress);
+            }
+            if (useIPv6 && inetAddress instanceof Inet6Address) {
+                out.add(inetAddress);
+            }
+        }
+        return out;
+    }
+
+    public boolean enableNetworkCard(NetworkInterface ni) throws IOException {
+        if (ni.isUp()) {
+            return true;
+        }
+        // 获取运行系统android版本 在 14 - 27 之间
+        if (!SuperUser.hasRoot()) {
+            LOG.info("enableNetworkCard:: no root permission can't enable " + ni.getName() + " up");
+            return false;
+        }
+        if (android.os.Build.VERSION.SDK_INT <= 27) {
+            LOG.info("enableNetworkCard:: try use root enable " + ni.getName() + " up");
+            SuperUser.exec("ifconfig " + ni.getName() + " up");
+            LOG.info("enableNetworkCard:: " + ni.getName() + " up");
+            return ni.isUp();
         } else {
-            return Collections.list(inetAddresses);
+            LOG.info("enableNetworkCard:: current android version not support enable network card up");
+            //todo 暂不支持
+            return false;
         }
     }
+
+    // required root
+    AtomicBoolean dhcpRunning = new AtomicBoolean(false);
+
+    public boolean dhcpNetworkCard(NetworkInterface ni, boolean ipv4, boolean ipv6) throws IOException {
+        if (enableNetworkCard(ni) && !dhcpRunning.get()) {
+            if (!getNetworkAddresses(ni, ipv4, ipv6).isEmpty()) {
+                return true;
+            }
+            if (android.os.Build.VERSION.SDK_INT <= 27) {
+                dhcpRunning.set(true);
+                try {
+                    SuperUser.exec("pkill dhcptool", "dhcptool " + ni.getName());
+                } finally {
+                    dhcpRunning.set(false);
+                }
+            }
+            return getNetworkAddresses(ni, ipv4, ipv6).size() > 0;
+        }
+        return false;
+    }
+
 
     public String getHardwareAddressString(NetworkInterface iface) {
         try {
@@ -265,4 +332,19 @@ public class NetworkUtils {
         return networkInterfaceList;
     }
 
+    public boolean isUsbNetworkOk(boolean allowIPv4, boolean allowIPv6) {
+        for (NetworkInterface ni : getNetworkInterfaces()) {
+            if (isSpecialInterface(ni)) {
+                try {
+                    if (dhcpNetworkCard(ni, allowIPv4, allowIPv6)) {
+                        LOG.info("isUsbNetworkOk:: " + ni.getName() + " is ok");
+                        return true;
+                    }
+                } catch (IOException ignore) {
+                }
+            }
+        }
+        LOG.info("isUsbNetworkOk:: no usb network card work");
+        return false;
+    }
 }
