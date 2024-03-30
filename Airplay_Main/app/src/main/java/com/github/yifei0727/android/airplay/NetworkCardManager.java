@@ -1,4 +1,4 @@
-package com.github.yifei0727.adnroid.airplay;
+package com.github.yifei0727.android.airplay;
 
 import java.io.IOException;
 import java.net.NetworkInterface;

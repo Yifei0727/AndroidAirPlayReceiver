@@ -1,17 +1,4 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.example.airplay_main.MainActivity" >
-
-    <item
-        android:id="@+id/action_item_home"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:title="@string/app_name" />
-    <item
-        android:id="@+id/action_settings"
-        android:orderInCategory="100"
-        android:showAsAction="never"
-        android:title="@string/action_settings"/>
-
-</menu>
+    tools:context="com.example.airplay_main.MainActivity" />

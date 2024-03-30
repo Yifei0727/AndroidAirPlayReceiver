@@ -1,4 +1,4 @@
-package com.beatofthedrum.alacdecoder.airplay.ui;
+package com.github.yifei0727.android.airplay.ui;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -24,8 +24,8 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.github.yifei0727.adnroid.airplay.AirPlayPrefSetting;
-import com.github.yifei0727.adnroid.airplay.service.AirPlayAndroidService;
+import com.github.yifei0727.android.airplay.AirPlayPrefSetting;
+import com.github.yifei0727.android.airplay.service.AirPlayAndroidService;
 import com.github.yifei0727.androidReceiver.R;
 
 import java.net.InetAddress;
@@ -194,6 +194,26 @@ public class AirplayActivity extends Activity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 LOG.info("onCheckedChanged isChecked = " + isChecked);
                 AirPlayPrefSetting.setUsbLanFirst(AirplayActivity.this, isChecked);
+            }
+        });
+        //root启用
+        final Switch useRoot = findViewById(R.id.switch3);
+        useRoot.setChecked(AirPlayPrefSetting.isRootPermitted(this));
+        useRoot.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                LOG.info("onCheckedChanged isChecked = " + isChecked);
+                AirPlayPrefSetting.setRootEnabled(AirplayActivity.this, isChecked);
+            }
+        });
+        //禁用IPv6
+        final Switch useIPv4Only = findViewById(R.id.switch4);
+        useIPv4Only.setChecked(AirPlayPrefSetting.isUseIPv4Only(this));
+        useIPv4Only.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                LOG.info("onCheckedChanged isChecked = " + isChecked);
+                AirPlayPrefSetting.setUseIPv4Only(AirplayActivity.this, isChecked);
             }
         });
 

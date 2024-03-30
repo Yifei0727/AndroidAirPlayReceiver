@@ -1,4 +1,4 @@
-package com.github.yifei0727.adnroid.airplay.service;
+package com.github.yifei0727.android.airplay.service;
 
 import android.app.Service;
 import android.content.Intent;
@@ -6,7 +6,8 @@ import android.media.AudioManager;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 
-import com.github.yifei0727.adnroid.airplay.AirPlayPrefSetting;
+import com.github.yifei0727.android.airplay.AirPlayPrefSetting;
+import com.github.yifei0727.android.airplay.SuperUser;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -85,6 +86,9 @@ public class AirPlayAndroidService extends Service {
         airPlayDaemonPlayer.setHostName(AirPlayPrefSetting.getAirplayName(this));//使用设备名称 如果有多个同样设备 请注释掉这行
         airPlayDaemonPlayer.setRtspPort(5000);
         airPlayDaemonPlayer.setUsbNetworkRatherThanWifi(AirPlayPrefSetting.isUsbLanFirst(this));
+        airPlayDaemonPlayer.setIPv4Enabled(true);
+        airPlayDaemonPlayer.setIPv6Enabled(!AirPlayPrefSetting.isUseIPv4Only(this));
+        SuperUser.setPermitUseRoot(AirPlayPrefSetting.isRootPermitted(this));
         Thread thread = new Thread(airPlayDaemonPlayer);
         thread.start();
         // 后端服务启动中 或者 启动完成

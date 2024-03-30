@@ -1,4 +1,4 @@
-package com.github.yifei0727.adnroid.airplay.service;
+package com.github.yifei0727.android.airplay.service;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -6,7 +6,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 
-import com.github.yifei0727.adnroid.airplay.AirPlayPrefSetting;
+import com.github.yifei0727.android.airplay.AirPlayPrefSetting;
 
 @RequiresApi(api = Build.VERSION_CODES.KITKAT)
 public class BootReceiver extends BroadcastReceiver {

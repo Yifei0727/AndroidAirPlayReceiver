@@ -17,5 +17,7 @@
     <string name="app_name_custom">设置自定义名称</string>
     <string name="use_usb_rather_than_wifi">优先使用USB网络</string>
     <string name="status_detecting">检测中</string>
+    <string name="enable_root_support">启用ROOT支持</string>
+    <string name="enable_ipv6_support">启用IPv6支持</string>
 
 </resources>

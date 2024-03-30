@@ -1,6 +1,6 @@
 package nz.co.iswe.android.airplay.network;
 
-import com.github.yifei0727.adnroid.airplay.SuperUser;
+import com.github.yifei0727.android.airplay.SuperUser;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

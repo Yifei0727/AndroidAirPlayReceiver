@@ -19,7 +19,7 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name">
         <receiver
-            android:name="com.github.yifei0727.adnroid.airplay.service.BootReceiver"
+            android:name="com.github.yifei0727.android.airplay.service.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -33,9 +33,9 @@
             </intent-filter>
         </receiver>
 
-        <service android:name="com.github.yifei0727.adnroid.airplay.service.AirPlayAndroidService" />
+        <service android:name="com.github.yifei0727.android.airplay.service.AirPlayAndroidService" />
         <activity
-            android:name="com.beatofthedrum.alacdecoder.airplay.ui.AirplayActivity"
+            android:name="com.github.yifei0727.android.airplay.ui.AirplayActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -1,6 +1,6 @@
 package nz.co.iswe.android.airplay;
 
-import com.github.yifei0727.adnroid.airplay.NetworkCardManager;
+import com.github.yifei0727.android.airplay.NetworkCardManager;
 
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelHandler;
@@ -242,12 +242,10 @@ public class AirPlayDaemonPlayer implements Runnable {
 
     public void setIPv4Enabled(boolean st) {
         this.isIPv4Enabled = st;
-        restart();
     }
 
     public void setIPv6Enabled(boolean st) {
         this.isIPv6Enabled = st;
-        restart();
     }
 
     private void restart() {
