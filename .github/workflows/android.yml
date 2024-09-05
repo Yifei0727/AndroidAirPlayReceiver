@@ -39,7 +39,7 @@ jobs:
       - name: Build Apk
         run: |
           cd Airplay_Main && ./gradlew assemble
-          APK_PATH="$(pwd)/app/build/outputs/apk/release/$(jq -r '.elements[0].path' app/build/outputs/apk/release/output.json)"
+          APK_PATH="$(pwd)/app/build/outputs/apk/release/$(jq -r '.[0].path' app/build/outputs/apk/release/output.json)"
           echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
 
   release:
