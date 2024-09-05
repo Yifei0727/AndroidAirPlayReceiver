@@ -39,14 +39,14 @@ jobs:
         run: |
           cd Airplay_Main && ./gradlew assemble
           APK_PATH="$(pwd)/app/build/outputs/apk/release/$(jq -r '.[0].path' app/build/outputs/apk/release/output.json)"
-          echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
+          echo "apk_path=$APK_PATH" >> $GITHUB_ENV
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v3
         with:
           name: release-apk
           if-no-files-found: error
-          path: ${{ job.env.APK_PATH }}
+          path: $apk_path
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -63,6 +63,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ job.env.APK_PATH }}
+          asset_path: $apk_path
           asset_name: app-release.apk
           asset_content_type: application/vnd.android.package-archive
