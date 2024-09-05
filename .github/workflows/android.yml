@@ -2,18 +2,9 @@ name: Android CI
 
 on:
   push:
-    branches:
-      - master
     tags: [ "*" ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name:  t1
-        run: echo "apk_path=Hello" >> $GITHUB_ENV
-      - name:  t2
-        run: echo "${{ env.apk_path }}"
 
   release:
     # 只有在 tag push 的时候才会触发构建，构建后发布 普通提交不需要构建
