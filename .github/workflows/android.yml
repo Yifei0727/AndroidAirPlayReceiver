@@ -9,6 +9,7 @@ on:
 
 jobs:
   build:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')
     runs-on: ubuntu-latest
 
     steps:
@@ -34,10 +35,13 @@ jobs:
         run: ./Airplay_Main/gradlew build
 
   release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Assembly Release
+        run: ./Airplay_Main/gradlew assembleRelease
+
       - name: Upload Release APK
         uses: actions/upload-artifact@v3
         with:
