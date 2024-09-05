@@ -8,15 +8,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    steps:
-      - name: print
-        run: |
-          echo "Event name: ${{ github.event_name }}, Ref: ${{ github.ref }}"
-
   build:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/')
     runs-on: ubuntu-latest
 
     steps:
