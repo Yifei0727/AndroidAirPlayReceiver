@@ -23,8 +23,9 @@ jobs:
           distribution: 'temurin'
           cache: gradle
           cache-dependency-path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
+            .gradle/caches
+            .gradle/wrapper
+
       - name: Install NDK
         run: |
           sudo apt-get update
