@@ -13,7 +13,7 @@ jobs:
       - name:  t1
         run: echo "apk_path=Hello" >> $GITHUB_ENV
       - name:  t2
-        run: echo "$apk_path"
+        run: echo "${{ env.apk_path }}"
 
   release:
     # 只有在 tag push 的时候才会触发构建，构建后发布 普通提交不需要构建
@@ -56,7 +56,7 @@ jobs:
         with:
           name: release-apk
           if-no-files-found: error
-          path: ${{ apk_path }}
+          path: ${{ env.apk_path }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -73,6 +73,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ apk_path }}
+          asset_path: ${{ env.apk_path }}
           asset_name: app-release.apk
           asset_content_type: application/vnd.android.package-archive
