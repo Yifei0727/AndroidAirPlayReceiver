@@ -9,6 +9,8 @@ on:
 
 jobs:
   build:
+    # 只有在 tag push 的时候才会触发构建，构建后发布 普通提交不需要构建
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
 
     steps:
@@ -28,25 +30,22 @@ jobs:
           unzip android-ndk-r16b-linux-x86_64.zip
           mv android-ndk-r16b $HOME/android-ndk
           echo "ndk.dir=$HOME/android-ndk" >> $GITHUB_WORKSPACE/local.properties
-      - name: Grant execute permission for gradlew
-        run: chmod +x Airplay_Main/gradlew
-      - name: Build Apk
-        run: cd Airplay_Main && ./gradlew assemble
-
-  release:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
       # Add this step before using jq
       - name: Install jq
         run: sudo apt-get install -y jq
 
-      - name: Extract APK file name
-        id: extract_apk
+      - name: Grant execute permission for gradlew
+        run: chmod +x Airplay_Main/gradlew
+      - name: Build Apk
         run: |
-          APK_PATH=$(jq -r '.elements[0].path' $GITHUB_WORKSPACE/Airplay_Main/app/build/outputs/apk/release/output.json)
+          cd Airplay_Main && ./gradlew assemble
+          APK_PATH="$(pwd)/app/build/outputs/apk/release/$(jq -r '.elements[0].path' app/build/outputs/apk/release/output.json)"
           echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v3
