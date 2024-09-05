@@ -22,9 +22,6 @@ jobs:
           java-version: '8'
           distribution: 'temurin'
           cache: gradle
-          cache-dependency-path: |
-            .gradle/caches
-            .gradle/wrapper
 
       - name: Install NDK
         run: |
