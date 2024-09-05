@@ -42,11 +42,21 @@ jobs:
       - name: Assembly Release
         run: ./Airplay_Main/gradlew assembleRelease
 
+      # Add this step before using jq
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Extract APK file name
+        id: extract_apk
+        run: |
+          APK_PATH=$(jq -r '.elements[0].outputFile' Airplay_Main/app/build/outputs/apk/release/output.json)
+          echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
+
       - name: Upload Release APK
         uses: actions/upload-artifact@v3
         with:
           name: release-apk
-          path: Airplay_Main/app/build/outputs/apk/release/app-release.apk
+          path: ${{ env.APK_PATH }}
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -63,6 +73,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: Airplay_Main/app/build/outputs/apk/release/app-release.apk
+          asset_path: ${{ env.APK_PATH }}
           asset_name: app-release.apk
           asset_content_type: application/vnd.android.package-archive
