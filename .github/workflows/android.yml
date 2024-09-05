@@ -31,16 +31,13 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x Airplay_Main/gradlew
       - name: Build Apk
-        run: ./Airplay_Main/gradlew build
+        run: cd Airplay_Main && ./gradlew assemble
 
   release:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Assembly Release
-        run: ./Airplay_Main/gradlew assembleRelease
-
       # Add this step before using jq
       - name: Install jq
         run: sudo apt-get install -y jq
