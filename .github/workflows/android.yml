@@ -45,7 +45,7 @@ jobs:
       - name: Extract APK file name
         id: extract_apk
         run: |
-          APK_PATH=$(jq -r '.elements[0].outputFile' Airplay_Main/app/build/outputs/apk/release/output.json)
+          APK_PATH=$(jq -r '.elements[0].path' ${{ $GITHUB_WORKSPACE }}/Airplay_Main/app/build/outputs/apk/release/output.json)
           echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
 
       - name: Upload Release APK
